@@ -1,4 +1,4 @@
-# Decisions — BreatheESG
+# Decisions — NexESG
 
 ## Every ambiguity I resolved and why
 

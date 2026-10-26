@@ -1,4 +1,4 @@
-# Tradeoffs — BreatheESG
+# Tradeoffs — NexESG
 
 ## Three things I deliberately did not build and why
 

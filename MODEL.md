@@ -1,7 +1,7 @@
-# Data Model — BreatheESG
+# Data Model — NexESG
 
 ## Overview
-This document explains the data model design for the BreatheESG emissions ingestion and review platform.
+This document explains the data model design for the NexESG emissions ingestion and review platform.
 
 ---
 
