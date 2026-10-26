@@ -1,11 +1,13 @@
 import axios from 'axios';
 
 // Set REACT_APP_API_URL in frontend/.env.local (dev) or your host's env (prod).
-const FALLBACK =
-  process.env.NODE_ENV === 'production'
-    ? 'https://breathe-esg-5hgc.onrender.com/api'
-    : 'http://localhost:8000/api';
-export const API_URL = (process.env.REACT_APP_API_URL || FALLBACK).replace(/\/$/, '');
+// In a production build the variable is required: guessing a URL would silently
+// send requests (and tokens) to the wrong server.
+if (process.env.NODE_ENV === 'production' && !process.env.REACT_APP_API_URL) {
+  // eslint-disable-next-line no-console
+  console.error('REACT_APP_API_URL is not set. Add it in the host settings and redeploy.');
+}
+export const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:8000/api').replace(/\/$/, '');
 
 const ACCESS_KEY = 'besg_access';
 const REFRESH_KEY = 'besg_refresh';

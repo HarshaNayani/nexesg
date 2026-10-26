@@ -14,3 +14,6 @@ backend/db.sqlite3
 # Node (frontend has its own .gitignore too)
 node_modules/
 .DS_Store
+
+# Collected static files (built on deploy)
+backend/staticfiles/

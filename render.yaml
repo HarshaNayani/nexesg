@@ -1,0 +1,44 @@
+# Render Blueprint for NexESG (API + static frontend).
+# Render looks for this file at the repo root: New > Blueprint > pick this repo.
+# Full steps are in DEPLOY.md.
+
+services:
+  # ---- Django REST API --------------------------------------------------
+  - type: web
+    name: nexesg-api
+    runtime: python
+    rootDir: backend
+    plan: free
+    buildCommand: pip install -r requirements.txt && python manage.py collectstatic --no-input && python manage.py migrate
+    startCommand: gunicorn backend.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.3
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FIRST_ADMIN_EMAIL
+        value: harshareddynayani@gmail.com
+      # You are asked for these during the first Blueprint setup
+      # (sync: false keeps secrets and per-account values out of git):
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: DATABASE_URL # Postgres connection string, see DEPLOY.md
+        sync: false
+      - key: CORS_ALLOWED_ORIGINS # the frontend URL, e.g. https://nexesg-web.onrender.com
+        sync: false
+
+  # ---- React frontend (static site) ------------------------------------
+  - type: web
+    name: nexesg-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./build
+    envVars:
+      # CRA bakes these in at build time, so redeploy the site after changing them.
+      - key: REACT_APP_API_URL # e.g. https://nexesg-api.onrender.com/api
+        sync: false
+      - key: REACT_APP_GOOGLE_CLIENT_ID
+        sync: false
