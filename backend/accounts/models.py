@@ -14,6 +14,8 @@ class User(AbstractUser):
         MANAGER = 'MANAGER', 'Manager'
         AUDITOR = 'AUDITOR', 'Auditor'
         ADMIN = 'ADMIN', 'Admin'
+        # Self-service visitors: own private sandbox company with sample data.
+        DEMO = 'DEMO', 'Demo'
 
     email = models.EmailField(unique=True)
     role = models.CharField(max_length=20, choices=Role.choices, default=Role.PENDING)

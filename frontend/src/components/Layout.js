@@ -114,6 +114,15 @@ export default function Layout() {
 
       <main className="lg:pl-64">
         <div className="mx-auto max-w-6xl px-4 py-6 sm:px-6 lg:py-8">
+          {user.role === 'DEMO' && (
+            <div
+              role="note"
+              className="mb-6 rounded-lg border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-900"
+            >
+              <span className="font-medium">Demo workspace.</span> This is your own private sandbox with sample
+              data. Upload files and approve, flag or reject records freely. Nothing here affects anyone else.
+            </div>
+          )}
           <Outlet />
         </div>
       </main>

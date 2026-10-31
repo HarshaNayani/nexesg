@@ -184,3 +184,12 @@ SIMPLE_JWT = {
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 # This email becomes ADMIN on first login so the system can be bootstrapped.
 FIRST_ADMIN_EMAIL = os.environ.get('FIRST_ADMIN_EMAIL', 'harshareddynayani@gmail.com')
+
+# When true, anyone who signs in with a verified Google account gets their own
+# private demo workspace (role DEMO) with sample data. When false, new users
+# stay PENDING until an Admin assigns a role.
+AUTO_DEMO_SIGNUP = env_bool('AUTO_DEMO_SIGNUP', False)
+
+# Upload limits keep a free database from being filled by one visitor.
+MAX_UPLOAD_BYTES = int(os.environ.get('MAX_UPLOAD_BYTES', 2 * 1024 * 1024))
+MAX_UPLOAD_ROWS = int(os.environ.get('MAX_UPLOAD_ROWS', 1000))

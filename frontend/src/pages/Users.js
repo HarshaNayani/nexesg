@@ -5,8 +5,8 @@ import { ROLE_LABELS, useAuth } from '../auth/AuthContext';
 import { useToast } from '../components/Toast';
 import { Badge, EmptyState, PageHeader, RoleBadge, Skeleton, Spinner } from '../components/ui';
 
-const ROLE_OPTIONS = ['PENDING', 'ANALYST', 'MANAGER', 'AUDITOR', 'ADMIN'];
-const NEEDS_COMPANY = ['ANALYST', 'MANAGER', 'AUDITOR'];
+const ROLE_OPTIONS = ['PENDING', 'DEMO', 'ANALYST', 'MANAGER', 'AUDITOR', 'ADMIN'];
+const NEEDS_COMPANY = ['DEMO', 'ANALYST', 'MANAGER', 'AUDITOR'];
 
 function CompaniesCard({ companies, onCreated }) {
   const toast = useToast();

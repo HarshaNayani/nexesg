@@ -14,6 +14,7 @@ const HEADINGS = {
   MANAGER: ['Review queue', 'Approve, flag or reject records submitted by your analysts.'],
   ANALYST: ['Your uploads', 'Track the review status of the data you have submitted.'],
   AUDITOR: ['Audit view', 'Approved records, locked and read-only.'],
+  DEMO: ['Demo workspace', 'Your own sandbox with sample data. Upload files, then approve, flag or reject records.'],
 };
 
 const REVIEW_COPY = {

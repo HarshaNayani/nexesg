@@ -20,6 +20,10 @@ services:
         generateValue: true
       - key: FIRST_ADMIN_EMAIL
         value: harshareddynayani@gmail.com
+      # Anyone who signs in with Google gets a private demo workspace with
+      # sample data. Set to "false" to require admin approval instead.
+      - key: AUTO_DEMO_SIGNUP
+        value: "true"
       # You are asked for these during the first Blueprint setup
       # (sync: false keeps secrets and per-account values out of git):
       - key: GOOGLE_CLIENT_ID

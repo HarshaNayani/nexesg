@@ -8,6 +8,7 @@ export const ROLES = {
   MANAGER: 'MANAGER',
   ANALYST: 'ANALYST',
   AUDITOR: 'AUDITOR',
+  DEMO: 'DEMO',
   PENDING: 'PENDING',
 };
 
@@ -16,6 +17,7 @@ export const ROLE_LABELS = {
   MANAGER: 'Manager',
   ANALYST: 'Analyst',
   AUDITOR: 'Auditor',
+  DEMO: 'Demo',
   PENDING: 'Pending',
 };
 
@@ -64,8 +66,8 @@ export function AuthProvider({ children }) {
       logout,
       refreshUser,
       isAdmin: role === ROLES.ADMIN,
-      canUpload: role === ROLES.ADMIN || role === ROLES.ANALYST,
-      canReview: role === ROLES.ADMIN || role === ROLES.MANAGER,
+      canUpload: role === ROLES.ADMIN || role === ROLES.ANALYST || role === ROLES.DEMO,
+      canReview: role === ROLES.ADMIN || role === ROLES.MANAGER || role === ROLES.DEMO,
     };
   }, [user, loading, loginWithGoogle, logout, refreshUser]);
 

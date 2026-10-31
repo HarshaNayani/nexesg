@@ -86,7 +86,7 @@ export default function Login() {
           </div>
 
           <p className="mt-6 text-xs text-ink-400">
-            New here? Sign in once and an administrator will assign your role and company.
+            New here? Sign in with Google and you will get your own private demo workspace with sample data to explore.
           </p>
         </div>
       </div>
