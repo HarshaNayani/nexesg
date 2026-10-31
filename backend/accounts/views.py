@@ -1,4 +1,5 @@
 from django.conf import settings
+from django.db import transaction
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
 from rest_framework import mixins, status, viewsets
@@ -6,6 +7,8 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+
+from api.demo import provision_demo_user
 
 from .models import User
 from .permissions import IsAdmin
@@ -27,9 +30,10 @@ class GoogleLoginView(APIView):
     """
     POST {"id_token": "<google credential>"} -> our own JWT access/refresh pair.
 
-    Google only proves who the person is. New users start as PENDING and an
-    Admin assigns the role. The one exception is FIRST_ADMIN_EMAIL, which is
-    created as ADMIN so the system can be bootstrapped.
+    Google only proves who the person is. FIRST_ADMIN_EMAIL is created as ADMIN
+    so the system can be bootstrapped. Every other new user either gets a private
+    demo workspace (AUTO_DEMO_SIGNUP=true) or starts as PENDING until an Admin
+    assigns a role.
     """
 
     permission_classes = [AllowAny]
@@ -55,18 +59,21 @@ class GoogleLoginView(APIView):
                             status=status.HTTP_401_UNAUTHORIZED)
 
         is_first_admin = email == settings.FIRST_ADMIN_EMAIL.lower()
-        user, created = User.objects.get_or_create(
-            email=email,
-            defaults={
-                'username': email,
-                'first_name': claims.get('given_name', ''),
-                'last_name': claims.get('family_name', ''),
-                'picture': claims.get('picture', ''),
-                'role': User.Role.ADMIN if is_first_admin else User.Role.PENDING,
-                'is_staff': is_first_admin,
-                'is_superuser': is_first_admin,
-            },
-        )
+        with transaction.atomic():
+            user, created = User.objects.get_or_create(
+                email=email,
+                defaults={
+                    'username': email,
+                    'first_name': claims.get('given_name', ''),
+                    'last_name': claims.get('family_name', ''),
+                    'picture': claims.get('picture', ''),
+                    'role': User.Role.ADMIN if is_first_admin else User.Role.PENDING,
+                    'is_staff': is_first_admin,
+                    'is_superuser': is_first_admin,
+                },
+            )
+            if created and not is_first_admin and settings.AUTO_DEMO_SIGNUP:
+                provision_demo_user(user)
 
         if not user.is_active:
             return Response({'error': 'This account has been disabled.'},

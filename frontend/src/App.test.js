@@ -78,6 +78,7 @@ describe('signing in', () => {
     render(<App />);
     expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /continue with google/i })).toBeInTheDocument();
+    expect(screen.getByText(/private demo workspace/i)).toBeInTheDocument();
   });
 
   test('Google credential is exchanged for a session and the dashboard opens', async () => {
@@ -141,6 +142,7 @@ describe('role-based navigation', () => {
     ['ANALYST', ['Dashboard', 'Upload data']],
     ['MANAGER', ['Dashboard']],
     ['AUDITOR', ['Dashboard']],
+    ['DEMO', ['Dashboard', 'Upload data']],
   ])('%s sees %j', async (role, expected) => {
     signedInAs(role);
     render(<App />);
@@ -246,6 +248,28 @@ describe('dashboard by role', () => {
     expect(await screen.findByText(/no records yet/i)).toBeInTheDocument();
     // The sidebar also has an "Upload data" link, so look inside the page content only.
     expect(within(screen.getByRole('main')).getByRole('link', { name: /upload data/i })).toBeInTheDocument();
+  });
+});
+
+describe('demo workspace', () => {
+  test('demo users see the sandbox banner and can review records', async () => {
+    signedInAs('DEMO');
+    render(<App />);
+    expect(await screen.findByRole('heading', { name: /demo workspace/i })).toBeInTheDocument();
+    expect(screen.getByRole('note')).toHaveTextContent(/private sandbox/i);
+    // Records load after the page shell, so wait for them.
+    expect(await screen.findByRole('button', { name: /approve record/i })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /users/i })).not.toBeInTheDocument();
+  });
+
+  test('other roles never see the demo banner', async () => {
+    for (const role of ['ADMIN', 'MANAGER', 'ANALYST', 'AUDITOR']) {
+      signedInAs(role);
+      const { unmount } = render(<App />);
+      await screen.findByText('Diesel purchase');
+      expect(screen.queryByRole('note')).not.toBeInTheDocument();
+      unmount();
+    }
   });
 });
 

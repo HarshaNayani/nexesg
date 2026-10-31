@@ -1,6 +1,7 @@
 import csv
 import io
 
+from django.conf import settings
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
@@ -226,16 +227,26 @@ class EmissionRecordViewSet(mixins.ListModelMixin,
         if error:
             return error
 
+        if file.size > settings.MAX_UPLOAD_BYTES:
+            limit_mb = settings.MAX_UPLOAD_BYTES / (1024 * 1024)
+            return Response({'error': f'File is too large (limit {limit_mb:g} MB).'}, status=413)
+
         try:
             decoded = file.read().decode('utf-8-sig')  # tolerates Excel's BOM
         except UnicodeDecodeError:
             return Response({'error': 'File must be a UTF-8 encoded CSV.'}, status=400)
 
-        reader = csv.DictReader(io.StringIO(decoded))
+        rows = list(csv.DictReader(io.StringIO(decoded)))
+        if len(rows) > settings.MAX_UPLOAD_ROWS:
+            return Response(
+                {'error': f'Too many rows (limit {settings.MAX_UPLOAD_ROWS}). Split the file and upload it in parts.'},
+                status=400,
+            )
+
         records_created = 0
         errors = []
 
-        for line_no, row in enumerate(reader, start=2):  # row 1 is the header
+        for line_no, row in enumerate(rows, start=2):  # row 1 is the header
             try:
                 fields = parse_row(row)
                 EmissionRecord.objects.create(

@@ -26,9 +26,9 @@ class UserAdminUpdateSerializer(serializers.ModelSerializer):
         company = attrs.get('company', getattr(self.instance, 'company', None))
         # Everyone except Admin and Pending must belong to a company, otherwise
         # they could never see any data.
-        if role in (User.Role.ANALYST, User.Role.MANAGER, User.Role.AUDITOR) and company is None:
+        if role in (User.Role.ANALYST, User.Role.MANAGER, User.Role.AUDITOR, User.Role.DEMO) and company is None:
             raise serializers.ValidationError(
-                {'company': 'Analyst, Manager and Auditor must be assigned to a company.'}
+                {'company': 'Analyst, Manager, Auditor and Demo users must be assigned to a company.'}
             )
         return attrs
 

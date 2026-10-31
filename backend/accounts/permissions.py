@@ -27,6 +27,8 @@ def has_role(*roles):
 
 # Convenience groups used across views.
 IsAdmin = has_role(Role.ADMIN)
-CanViewData = has_role(Role.ADMIN, Role.MANAGER, Role.ANALYST, Role.AUDITOR)
-CanUpload = has_role(Role.ADMIN, Role.ANALYST)
-CanReview = has_role(Role.ADMIN, Role.MANAGER)
+# DEMO users get analyst + manager abilities, but only inside their own sandbox
+# company: every queryset is already scoped to user.company.
+CanViewData = has_role(Role.ADMIN, Role.MANAGER, Role.ANALYST, Role.AUDITOR, Role.DEMO)
+CanUpload = has_role(Role.ADMIN, Role.ANALYST, Role.DEMO)
+CanReview = has_role(Role.ADMIN, Role.MANAGER, Role.DEMO)

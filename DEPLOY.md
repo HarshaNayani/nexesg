@@ -55,11 +55,23 @@ Google Cloud Console → **Credentials** → your OAuth client → **Authorized 
 2. Open the frontend URL and sign in with the `FIRST_ADMIN_EMAIL` account. You become **Admin**.
 3. On **Users**, create a company, then sign in with a second Google account and assign it a role and company.
 
+## 6. Let visitors sign in (demo workspaces)
+
+With `AUTO_DEMO_SIGNUP=true` (the default in `render.yaml`), anyone who signs in with a verified Google account gets their **own private demo workspace**: a sandbox company filled with sample emission records and the **Demo** role. They can upload CSVs, approve, flag and reject records, but only inside their own workspace. They cannot see other visitors' or real data, and they cannot open the Users page.
+
+- Your `FIRST_ADMIN_EMAIL` account is still created as **Admin**.
+- To go back to manual approval, set `AUTO_DEMO_SIGNUP` to `false` on `nexesg-api`. New users then start as Pending until an Admin assigns a role.
+- An Admin can still change any visitor's role and company on the **Users** page (for example, to make a real Analyst).
+- Uploads are limited to 2 MB and 1,000 rows per file (`MAX_UPLOAD_BYTES`, `MAX_UPLOAD_ROWS`) so one visitor cannot fill a free database. Each new visitor also adds a small sandbox (about 12 records), so clean up old demo companies now and then.
+
+**Google must allow strangers to sign in.** In Google Cloud Console, **OAuth consent screen**, check the publishing status. If it says **Testing**, only the test users you list can sign in. Click **Publish app** to move it to **In production**. For basic sign-in (email and profile) Google normally does not require a verification review, but confirm what the console shows for your project.
+
 ## Troubleshooting
 
 | Symptom | Cause |
 |---------|-------|
 | Google says `origin_mismatch` or `no registered origin` | The site URL is not in **Authorized JavaScript origins**, or does not match exactly. |
+| Google says "Access blocked: app not verified" or only some people can sign in | The consent screen is still in **Testing**. Publish it (section 6). |
 | "Invalid Google token" | `GOOGLE_CLIENT_ID` on `nexesg-api` differs from `REACT_APP_GOOGLE_CLIENT_ID` on `nexesg-web`. |
 | Browser console shows a CORS error | `CORS_ALLOWED_ORIGINS` on `nexesg-api` does not exactly match the frontend URL. |
 | "Cannot reach the server" | The free API is waking up (wait about a minute) or `REACT_APP_API_URL` is wrong. |

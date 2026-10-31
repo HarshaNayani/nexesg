@@ -36,6 +36,7 @@ const ROLE_TONE = {
   MANAGER: 'blue',
   ANALYST: 'green',
   AUDITOR: 'amber',
+  DEMO: 'blue',
   PENDING: 'gray',
 };
 export const RoleBadge = ({ role, label }) => <Badge tone={ROLE_TONE[role] || 'gray'}>{label}</Badge>;
