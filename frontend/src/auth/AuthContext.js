@@ -52,6 +52,13 @@ export function AuthProvider({ children }) {
     return res.data.user;
   }, []);
 
+  const loginWithOtp = useCallback(async (email, code) => {
+    const res = await api.post('/auth/otp/verify/', { email, code });
+    tokens.set({ access: res.data.access, refresh: res.data.refresh });
+    setUser(res.data.user);
+    return res.data.user;
+  }, []);
+
   const logout = useCallback(() => {
     tokens.clear();
     setUser(null);
@@ -63,13 +70,14 @@ export function AuthProvider({ children }) {
       user,
       loading,
       loginWithGoogle,
+      loginWithOtp,
       logout,
       refreshUser,
       isAdmin: role === ROLES.ADMIN,
       canUpload: role === ROLES.ADMIN || role === ROLES.ANALYST || role === ROLES.DEMO,
       canReview: role === ROLES.ADMIN || role === ROLES.MANAGER || role === ROLES.DEMO,
     };
-  }, [user, loading, loginWithGoogle, logout, refreshUser]);
+  }, [user, loading, loginWithGoogle, loginWithOtp, logout, refreshUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
