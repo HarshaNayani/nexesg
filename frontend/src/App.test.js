@@ -184,17 +184,53 @@ describe('free demo and header menus', () => {
     expect(within(ai).getByText(/coming soon/i)).toBeInTheDocument();
   });
 
-  test('the header is transparent at the top and turns into frosted glass after scrolling', () => {
-    render(<App />);
-    const header = screen.getByRole('banner');
-    expect(header).toHaveClass('bg-transparent');
-    window.scrollY = 200;
-    fireEvent.scroll(window);
-    expect(header).toHaveClass('backdrop-blur-md');
-    expect(header).not.toHaveClass('bg-transparent');
-    window.scrollY = 0;
-    fireEvent.scroll(window);
-    expect(header).toHaveClass('bg-transparent');
+  describe('transparent header', () => {
+    const overDarkSection = (isOver) =>
+      jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function rect() {
+        const dark = this.hasAttribute && this.hasAttribute('data-dark-section');
+        return dark && isOver
+          ? { top: -20, bottom: 500, left: 0, right: 0, width: 0, height: 520 }
+          : { top: 900, bottom: 1400, left: 0, right: 0, width: 0, height: 500 };
+      });
+    afterEach(() => jest.restoreAllMocks());
+
+    test('has no background or blur, and a green gradient NexESG name', () => {
+      overDarkSection(true);
+      render(<App />);
+      const header = screen.getByRole('banner');
+      expect(header.className).not.toMatch(/\bbg-|backdrop/);
+      const name = within(header).getByText('NexESG');
+      expect(name).toHaveClass('bg-clip-text', 'text-transparent');
+      expect(name.className).toMatch(/emerald|brand/);
+    });
+
+    test('text is white over a dark section and dark over a light one', async () => {
+      overDarkSection(true);
+      const { unmount } = render(<App />);
+      expect(within(screen.getByRole('banner')).getByRole('link', { name: /^sign in$/i })).toHaveClass('text-white');
+      unmount();
+
+      jest.restoreAllMocks();
+      overDarkSection(false);
+      render(<App />);
+      const link = within(screen.getByRole('banner')).getByRole('link', { name: /^sign in$/i });
+      expect(link).toHaveClass('text-ink-900');
+      expect(within(screen.getByRole('banner')).getByRole('link', { name: /^sign up$/i })).toHaveClass('bg-brand-600');
+    });
+
+    test('switches when the page scrolls past the hero', () => {
+      let over = true;
+      jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function rect() {
+        const dark = this.hasAttribute && this.hasAttribute('data-dark-section');
+        return dark && over ? { top: 0, bottom: 600 } : { top: 900, bottom: 1400 };
+      });
+      render(<App />);
+      const link = () => within(screen.getByRole('banner')).getByRole('link', { name: /^sign in$/i });
+      expect(link()).toHaveClass('text-white');
+      over = false;
+      fireEvent.scroll(window);
+      expect(link()).toHaveClass('text-ink-900');
+    });
   });
 
   test('Escape closes an open menu', async () => {

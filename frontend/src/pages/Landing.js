@@ -159,7 +159,7 @@ const MENUS = [
   },
 ];
 
-function NavMenu({ menu, onPick }) {
+function NavMenu({ menu, onPick, light }) {
   // Open while hovered (mouse) or after a click/tap or keyboard press (pinned).
   const [hover, setHover] = useState(false);
   const [pinned, setPinned] = useState(false);
@@ -189,15 +189,23 @@ function NavMenu({ menu, onPick }) {
         aria-haspopup="true"
         aria-expanded={open}
         onClick={() => setPinned((v) => !v)}
-        className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold text-white drop-shadow hover:bg-white/10"
+        className={`flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold ${
+          light ? 'text-white hover:bg-white/10' : 'text-ink-900 hover:bg-ink-900/5'
+        }`}
       >
         {menu.sparkle && <Sparkles className="h-4 w-4" aria-hidden="true" />}
         {menu.label}
-        <ChevronDown className={`h-4 w-4 text-white/70 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+        <ChevronDown
+          className={`h-4 w-4 transition-transform ${light ? 'text-white/70' : 'text-ink-500'} ${open ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        />
       </button>
       {open && (
         <div className="absolute left-0 top-full z-30 w-64 pt-2">
-          <ul className="rounded-xl border border-white/20 bg-ink-900/90 p-2 shadow-xl" aria-label={menu.label}>
+          <ul
+            className="rounded-xl border border-white/20 bg-ink-900/50 p-2 shadow-xl backdrop-blur-xl backdrop-saturate-150"
+            aria-label={menu.label}
+          >
             {menu.items.map(([title, hint, target]) => (
               <li key={title}>
                 <button
@@ -210,7 +218,7 @@ function NavMenu({ menu, onPick }) {
                   className="w-full rounded-lg px-3 py-2 text-left hover:bg-white/15 disabled:cursor-default disabled:hover:bg-transparent"
                 >
                   <span className="block text-sm font-semibold text-white">{title}</span>
-                  <span className="block text-xs text-white/75">{hint}</span>
+                  <span className="block text-xs text-white/80">{hint}</span>
                 </button>
               </li>
             ))}
@@ -233,13 +241,25 @@ function SectionHeading({ eyebrow, title, children }) {
 
 export default function Landing() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  // Fully transparent over the hero; a frosted dark glass once the page scrolls.
-  const [scrolled, setScrolled] = useState(false);
+  // The header has no background at all. Its text turns white while it sits over a
+  // dark section (marked data-dark-section) and dark everywhere else, so it stays readable.
+  const [light, setLight] = useState(true);
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
+    const check = () => {
+      const probe = 32; // a point inside the header bar
+      const overDark = Array.from(document.querySelectorAll('[data-dark-section]')).some((el) => {
+        const r = el.getBoundingClientRect();
+        return r.top <= probe && r.bottom >= probe;
+      });
+      setLight(overDark);
+    };
+    check();
+    window.addEventListener('scroll', check, { passive: true });
+    window.addEventListener('resize', check);
+    return () => {
+      window.removeEventListener('scroll', check);
+      window.removeEventListener('resize', check);
+    };
   }, []);
   const pick = (id) => {
     setMobileOpen(false);
@@ -248,35 +268,43 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-white text-ink-800">
-      <header
-        className={`fixed inset-x-0 top-0 z-20 border-b text-white transition-colors duration-300 [text-shadow:0_1px_3px_rgba(0,0,0,0.55)] ${
-          scrolled || mobileOpen
-            ? 'border-white/15 bg-ink-900/35 backdrop-blur-md'
-            : 'border-transparent bg-transparent'
-        }`}
-      >
+      <header className="fixed inset-x-0 top-0 z-20">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link to="/" className="flex items-center gap-2 text-xl font-bold text-white drop-shadow">
-            <Leaf className="h-6 w-6 text-brand-200" aria-hidden="true" /> NexESG
+          <Link to="/" className="flex items-center gap-2 text-xl font-bold tracking-tight">
+            <Leaf className={`h-6 w-6 ${light ? 'text-brand-300' : 'text-brand-600'}`} aria-hidden="true" />
+            <span
+              className={`bg-gradient-to-r bg-clip-text text-transparent ${
+                light ? 'from-brand-200 via-emerald-300 to-brand-400' : 'from-brand-700 via-brand-500 to-emerald-500'
+              }`}
+            >
+              NexESG
+            </span>
           </Link>
           <nav aria-label="Sections" className="hidden items-center gap-1 lg:flex">
             {MENUS.map((m) => (
-              <NavMenu key={m.label} menu={m} onPick={pick} />
+              <NavMenu key={m.label} menu={m} onPick={pick} light={light} />
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <Link to="/login" className="rounded-lg px-3 py-2 text-sm font-semibold text-white drop-shadow hover:bg-white/10">
+            <Link
+              to="/login"
+              className={`rounded-lg px-3 py-2 text-sm font-semibold ${
+                light ? 'text-white hover:bg-white/10' : 'text-ink-900 hover:bg-ink-900/5'
+              }`}
+            >
               Sign in
             </Link>
             <Link
               to="/login?mode=signup"
-              className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-brand-800 [text-shadow:none] hover:bg-brand-50"
+              className={`rounded-lg px-3 py-2 text-sm font-semibold ${
+                light ? 'bg-white text-brand-800 hover:bg-brand-50' : 'bg-brand-600 text-white hover:bg-brand-700'
+              }`}
             >
               Sign up
             </Link>
             <button
               type="button"
-              className="rounded-lg p-2 text-white hover:bg-white/10 lg:hidden"
+              className={`rounded-lg p-2 lg:hidden ${light ? 'text-white hover:bg-white/10' : 'text-ink-900 hover:bg-ink-900/5'}`}
               aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
               aria-expanded={mobileOpen}
               onClick={() => setMobileOpen((v) => !v)}
@@ -286,7 +314,7 @@ export default function Landing() {
           </div>
         </div>
         {mobileOpen && (
-          <div className="max-h-[70vh] overflow-y-auto border-t border-white/10 px-4 pb-4 lg:hidden">
+          <div className="mx-3 max-h-[70vh] overflow-y-auto rounded-xl border border-white/20 bg-ink-900/85 px-3 pb-3 shadow-xl backdrop-blur-xl lg:hidden">
             {MENUS.map((m) => (
               <div key={m.label} className="py-2">
                 <p className="px-2 text-xs font-semibold uppercase tracking-wide text-brand-300">{m.label}</p>
@@ -296,7 +324,7 @@ export default function Landing() {
                     type="button"
                     disabled={!target}
                     onClick={() => pick(target)}
-                    className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-white/90 hover:bg-white/10 disabled:text-white/50"
+                    className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-white hover:bg-white/10 disabled:text-white/50"
                   >
                     {title}
                   </button>
@@ -309,7 +337,7 @@ export default function Landing() {
 
       <main>
         {/* Hero */}
-        <section className="bg-gradient-to-b from-brand-900 via-brand-800 to-brand-700 text-white">
+        <section data-dark-section className="bg-gradient-to-b from-brand-900 via-brand-800 to-brand-700 text-white">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-14 pt-28 sm:px-6 lg:grid-cols-2 lg:pb-20 lg:pt-32">
             <div>
               <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-brand-100">
@@ -507,7 +535,7 @@ export default function Landing() {
         </section>
 
         {/* Final call to action */}
-        <section className="bg-brand-900">
+        <section data-dark-section className="bg-brand-900">
           <div className="mx-auto max-w-3xl px-4 py-14 text-center sm:px-6">
             <h2 className="text-2xl font-semibold text-white sm:text-3xl">Explore it with sample data in a minute</h2>
             <p className="mt-2 text-sm text-brand-100">
