@@ -233,6 +233,14 @@ function SectionHeading({ eyebrow, title, children }) {
 
 export default function Landing() {
   const [mobileOpen, setMobileOpen] = useState(false);
+  // Fully transparent over the hero; a frosted dark glass once the page scrolls.
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 24);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
   const pick = (id) => {
     setMobileOpen(false);
     goTo(id);
@@ -240,7 +248,13 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-white text-ink-800">
-      <header className="sticky top-0 z-20 border-b border-white/10 bg-brand-900/95 backdrop-blur">
+      <header
+        className={`fixed inset-x-0 top-0 z-20 border-b transition-colors duration-300 ${
+          scrolled || mobileOpen
+            ? 'border-white/10 bg-brand-900/70 backdrop-blur-md'
+            : 'border-transparent bg-transparent'
+        }`}
+      >
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2 text-lg font-semibold text-white">
             <Leaf className="h-6 w-6 text-brand-300" aria-hidden="true" /> NexESG
@@ -272,7 +286,7 @@ export default function Landing() {
           </div>
         </div>
         {mobileOpen && (
-          <div className="max-h-[70vh] overflow-y-auto border-t border-white/10 bg-brand-900 px-4 pb-4 lg:hidden">
+          <div className="max-h-[70vh] overflow-y-auto border-t border-white/10 px-4 pb-4 lg:hidden">
             {MENUS.map((m) => (
               <div key={m.label} className="py-2">
                 <p className="px-2 text-xs font-semibold uppercase tracking-wide text-brand-300">{m.label}</p>
@@ -296,7 +310,7 @@ export default function Landing() {
       <main>
         {/* Hero */}
         <section className="bg-gradient-to-b from-brand-900 via-brand-800 to-brand-700 text-white">
-          <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:py-20">
+          <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 pb-14 pt-28 sm:px-6 lg:grid-cols-2 lg:pb-20 lg:pt-32">
             <div>
               <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-brand-100">
                 <Leaf className="h-3.5 w-3.5" aria-hidden="true" /> Emissions data you can trust
