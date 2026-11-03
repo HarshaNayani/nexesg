@@ -189,15 +189,15 @@ function NavMenu({ menu, onPick }) {
         aria-haspopup="true"
         aria-expanded={open}
         onClick={() => setPinned((v) => !v)}
-        className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-white/90 hover:text-white"
+        className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-semibold text-white drop-shadow hover:bg-white/10"
       >
         {menu.sparkle && <Sparkles className="h-4 w-4" aria-hidden="true" />}
         {menu.label}
-        <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+        <ChevronDown className={`h-4 w-4 text-white/70 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
       </button>
       {open && (
         <div className="absolute left-0 top-full z-30 w-64 pt-2">
-          <ul className="rounded-xl border border-ink-100 bg-white p-2 shadow-xl" aria-label={menu.label}>
+          <ul className="rounded-xl border border-white/20 bg-ink-900/90 p-2 shadow-xl" aria-label={menu.label}>
             {menu.items.map(([title, hint, target]) => (
               <li key={title}>
                 <button
@@ -207,10 +207,10 @@ function NavMenu({ menu, onPick }) {
                     close();
                     onPick(target);
                   }}
-                  className="w-full rounded-lg px-3 py-2 text-left hover:bg-brand-50 disabled:cursor-default disabled:hover:bg-transparent"
+                  className="w-full rounded-lg px-3 py-2 text-left hover:bg-white/15 disabled:cursor-default disabled:hover:bg-transparent"
                 >
-                  <span className="block text-sm font-medium text-ink-900">{title}</span>
-                  <span className="block text-xs text-ink-500">{hint}</span>
+                  <span className="block text-sm font-semibold text-white">{title}</span>
+                  <span className="block text-xs text-white/75">{hint}</span>
                 </button>
               </li>
             ))}
@@ -249,15 +249,15 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-white text-ink-800">
       <header
-        className={`fixed inset-x-0 top-0 z-20 border-b transition-colors duration-300 ${
+        className={`fixed inset-x-0 top-0 z-20 border-b text-white transition-colors duration-300 [text-shadow:0_1px_3px_rgba(0,0,0,0.55)] ${
           scrolled || mobileOpen
-            ? 'border-white/10 bg-brand-900/70 backdrop-blur-md'
+            ? 'border-white/15 bg-ink-900/35 backdrop-blur-md'
             : 'border-transparent bg-transparent'
         }`}
       >
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link to="/" className="flex items-center gap-2 text-lg font-semibold text-white">
-            <Leaf className="h-6 w-6 text-brand-300" aria-hidden="true" /> NexESG
+          <Link to="/" className="flex items-center gap-2 text-xl font-bold text-white drop-shadow">
+            <Leaf className="h-6 w-6 text-brand-200" aria-hidden="true" /> NexESG
           </Link>
           <nav aria-label="Sections" className="hidden items-center gap-1 lg:flex">
             {MENUS.map((m) => (
@@ -265,12 +265,12 @@ export default function Landing() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <Link to="/login" className="rounded-lg px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10">
+            <Link to="/login" className="rounded-lg px-3 py-2 text-sm font-semibold text-white drop-shadow hover:bg-white/10">
               Sign in
             </Link>
             <Link
               to="/login?mode=signup"
-              className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-brand-800 hover:bg-brand-50"
+              className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-brand-800 [text-shadow:none] hover:bg-brand-50"
             >
               Sign up
             </Link>
