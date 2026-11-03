@@ -127,6 +127,98 @@ describe('landing page', () => {
   });
 });
 
+describe('free demo and header menus', () => {
+  const demoResponse = { data: { access: 'g', refresh: 'gr', user: makeUser('DEMO', { first_name: 'Guest abc123' }) } };
+  const quietApi = () =>
+    api.get.mockImplementation((url) => Promise.resolve({ data: url === '/emissions/summary/' ? SUMMARY : [] }));
+
+  test('Try free demo on the landing page signs in as a guest without any login', async () => {
+    api.post.mockResolvedValue(demoResponse);
+    quietApi();
+    render(<App />);
+    await userEvent.click(screen.getAllByRole('button', { name: /try free demo/i })[0]);
+    expect(await screen.findByRole('heading', { name: /demo workspace/i })).toBeInTheDocument();
+    expect(api.post).toHaveBeenCalledWith('/auth/demo/');
+    expect(tokens.set).toHaveBeenCalledWith({ access: 'g', refresh: 'gr' });
+  });
+
+  test('the login page has a Free demo button and only the one-line Google heading text', async () => {
+    window.location.hash = '#/login';
+    api.post.mockResolvedValue(demoResponse);
+    quietApi();
+    render(<App />);
+    expect(screen.getByText('Sign in with Google')).toBeInTheDocument();
+    expect(screen.queryByText(/one-time code by email\./i)).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /^free demo$/i }));
+    expect(await screen.findByRole('heading', { name: /demo workspace/i })).toBeInTheDocument();
+  });
+
+  test('the sign-up page says Sign up with Google', () => {
+    window.location.hash = '#/login?mode=signup';
+    render(<App />);
+    expect(screen.getByText('Sign up with Google')).toBeInTheDocument();
+  });
+
+  test('a demo that fails to start shows the server message and stays put', async () => {
+    api.post.mockRejectedValue({ response: { status: 429, data: { error: 'The demo is very busy. Please try again in a few minutes.' } } });
+    render(<App />);
+    await userEvent.click(screen.getAllByRole('button', { name: /try free demo/i })[0]);
+    expect(await screen.findByText(/demo is very busy/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: /from source file to audit/i })).toBeInTheDocument();
+  });
+
+  test('header menus open on click and list their pages; AI Agents is marked coming soon', async () => {
+    render(<App />);
+    const header = screen.getByRole('banner');
+    const learn = within(header).getByRole('button', { name: /^learn$/i });
+    expect(learn).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(learn);
+    expect(learn).toHaveAttribute('aria-expanded', 'true');
+    const list = within(header).getByRole('list', { name: /learn/i });
+    expect(within(list).getByRole('button', { name: /what is esg/i })).toBeEnabled();
+    expect(within(list).getByRole('button', { name: /co₂ rates/i })).toBeEnabled();
+
+    await userEvent.click(within(header).getByRole('button', { name: /ai agents/i }));
+    const ai = within(header).getByRole('list', { name: /ai agents/i });
+    expect(within(ai).getByRole('button', { name: /esg assistant/i })).toBeDisabled();
+    expect(within(ai).getByText(/coming soon/i)).toBeInTheDocument();
+  });
+
+  test('Escape closes an open menu', async () => {
+    render(<App />);
+    const header = screen.getByRole('banner');
+    const platform = within(header).getByRole('button', { name: /^platform$/i });
+    await userEvent.click(platform);
+    expect(platform).toHaveAttribute('aria-expanded', 'true');
+    await userEvent.keyboard('{Escape}');
+    expect(platform).toHaveAttribute('aria-expanded', 'false');
+  });
+
+  test('picking a menu item scrolls to its section', async () => {
+    const scrollIntoView = jest.fn();
+    window.HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    render(<App />);
+    const header = screen.getByRole('banner');
+    await userEvent.click(within(header).getByRole('button', { name: /^learn$/i }));
+    await userEvent.click(within(header).getByRole('button', { name: /^faq/i }));
+    expect(scrollIntoView).toHaveBeenCalled();
+  });
+
+  test('mobile menu button toggles the full list of pages', async () => {
+    render(<App />);
+    await userEvent.click(screen.getByRole('button', { name: /open menu/i }));
+    expect(screen.getByRole('button', { name: /close menu/i })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getAllByRole('button', { name: /^faq/i }).length).toBeGreaterThan(0);
+  });
+
+  test('guest users are signed out back to the landing page like anyone else', async () => {
+    signedInAs('DEMO');
+    render(<App />);
+    await userEvent.click(await screen.findByRole('button', { name: /sign out/i }));
+    expect(await screen.findByRole('heading', { level: 1, name: /from source file to audit/i })).toBeInTheDocument();
+  });
+});
+
 describe('signing in', () => {
   beforeEach(() => {
     window.location.hash = '#/login';

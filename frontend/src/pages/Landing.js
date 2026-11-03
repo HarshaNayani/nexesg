@@ -1,20 +1,25 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
   BarChart3,
   Building2,
+  ChevronDown,
   Calculator,
   ClipboardCheck,
   Factory,
   FileSpreadsheet,
   Leaf,
   Lock,
+  Menu,
   Plane,
+  Sparkles,
   ShieldCheck,
   Users,
+  X,
   Zap,
 } from 'lucide-react';
+import FreeDemoButton from '../components/FreeDemoButton';
 import { LINKEDIN_URL, OWNER_NAME } from '../config';
 
 // Same numbers the app uses when it calculates (backend/api/views.py).
@@ -98,16 +103,121 @@ const FAQ = [
   ['Are these emission factors official?', 'They are simplified demonstration factors. For real reporting, use the published factors for your country and year (for example from the GHG Protocol, your national grid authority or DEFRA).'],
 ];
 
-const scrollToSection = (id) => () => {
+const goTo = (id) => {
   // Plain anchors (#id) would change the URL hash, which this app uses for routing.
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (id) document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 };
+const scrollToSection = (id) => () => goTo(id);
 
 function LinkedInIcon({ className = 'h-5 w-5' }) {
   return (
     <svg viewBox="0 0 24 24" className={className} fill="currentColor" aria-hidden="true">
       <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z" />
     </svg>
+  );
+}
+
+
+// Header menus, in the style of a product site: each opens a small panel of links.
+const MENUS = [
+  {
+    label: 'Platform',
+    items: [
+      ['Data ingestion', 'SAP, utility and travel files', 'how-it-works'],
+      ['Review and audit trail', 'Approve, flag, lock', 'features'],
+      ['Analytics and reports', 'Charts and exports', 'features'],
+    ],
+  },
+  {
+    label: 'Solutions',
+    items: [
+      ['Scope 1', 'Direct fuel emissions', 'what-is-esg'],
+      ['Scope 2', 'Purchased electricity', 'what-is-esg'],
+      ['Scope 3', 'Business travel', 'what-is-esg'],
+    ],
+  },
+  {
+    label: 'Company',
+    items: [
+      ['Roles and access', 'Who can do what', 'roles'],
+      ['Security', 'Isolation and audit', 'features'],
+      ['About the builder', OWNER_NAME, 'about'],
+    ],
+  },
+  {
+    label: 'Learn',
+    items: [
+      ['What is ESG', 'The basics', 'what-is-esg'],
+      ['CO₂ rates', 'Emission factors we use', 'emission-factors'],
+      ['FAQ', 'Common questions', 'faq'],
+    ],
+  },
+  {
+    label: 'AI Agents',
+    sparkle: true,
+    items: [['ESG assistant', 'Coming soon', null]],
+  },
+];
+
+function NavMenu({ menu, onPick }) {
+  // Open while hovered (mouse) or after a click/tap or keyboard press (pinned).
+  const [hover, setHover] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const open = hover || pinned;
+  const close = () => {
+    setHover(false);
+    setPinned(false);
+  };
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onDown = (e) => ref.current && !ref.current.contains(e.target) && close();
+    const onKey = (e) => e.key === 'Escape' && close();
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [open]);
+
+  return (
+    <div ref={ref} className="relative" onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
+      <button
+        type="button"
+        aria-haspopup="true"
+        aria-expanded={open}
+        onClick={() => setPinned((v) => !v)}
+        className="flex items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-white/90 hover:text-white"
+      >
+        {menu.sparkle && <Sparkles className="h-4 w-4" aria-hidden="true" />}
+        {menu.label}
+        <ChevronDown className={`h-4 w-4 transition-transform ${open ? 'rotate-180' : ''}`} aria-hidden="true" />
+      </button>
+      {open && (
+        <div className="absolute left-0 top-full z-30 w-64 pt-2">
+          <ul className="rounded-xl border border-ink-100 bg-white p-2 shadow-xl" aria-label={menu.label}>
+            {menu.items.map(([title, hint, target]) => (
+              <li key={title}>
+                <button
+                  type="button"
+                  disabled={!target}
+                  onClick={() => {
+                    close();
+                    onPick(target);
+                  }}
+                  className="w-full rounded-lg px-3 py-2 text-left hover:bg-brand-50 disabled:cursor-default disabled:hover:bg-transparent"
+                >
+                  <span className="block text-sm font-medium text-ink-900">{title}</span>
+                  <span className="block text-xs text-ink-500">{hint}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -122,80 +232,99 @@ function SectionHeading({ eyebrow, title, children }) {
 }
 
 export default function Landing() {
-  const nav = [
-    ['what-is-esg', 'What is ESG'],
-    ['how-it-works', 'How it works'],
-    ['emission-factors', 'CO₂ rates'],
-    ['roles', 'Roles'],
-    ['faq', 'FAQ'],
-  ];
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const pick = (id) => {
+    setMobileOpen(false);
+    goTo(id);
+  };
 
   return (
     <div className="min-h-screen bg-white text-ink-800">
-      <header className="sticky top-0 z-20 border-b border-ink-100 bg-white/90 backdrop-blur">
+      <header className="sticky top-0 z-20 border-b border-white/10 bg-brand-900/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
-          <Link to="/" className="flex items-center gap-2 text-lg font-semibold text-ink-900">
-            <Leaf className="h-6 w-6 text-brand-600" aria-hidden="true" /> NexESG
+          <Link to="/" className="flex items-center gap-2 text-lg font-semibold text-white">
+            <Leaf className="h-6 w-6 text-brand-300" aria-hidden="true" /> NexESG
           </Link>
-          <nav aria-label="Sections" className="hidden items-center gap-6 text-sm text-ink-600 md:flex">
-            {nav.map(([id, label]) => (
-              <button key={id} type="button" onClick={scrollToSection(id)} className="hover:text-ink-900">
-                {label}
-              </button>
+          <nav aria-label="Sections" className="hidden items-center gap-1 lg:flex">
+            {MENUS.map((m) => (
+              <NavMenu key={m.label} menu={m} onPick={pick} />
             ))}
           </nav>
           <div className="flex items-center gap-2">
-            <Link
-              to="/login"
-              className="rounded-lg px-3 py-2 text-sm font-medium text-ink-700 hover:bg-ink-50"
-            >
+            <Link to="/login" className="rounded-lg px-3 py-2 text-sm font-medium text-white/90 hover:bg-white/10">
               Sign in
             </Link>
             <Link
               to="/login?mode=signup"
-              className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-medium text-white hover:bg-brand-700"
+              className="rounded-lg bg-white px-3 py-2 text-sm font-semibold text-brand-800 hover:bg-brand-50"
             >
               Sign up
             </Link>
+            <button
+              type="button"
+              className="rounded-lg p-2 text-white hover:bg-white/10 lg:hidden"
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileOpen}
+              onClick={() => setMobileOpen((v) => !v)}
+            >
+              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
+        {mobileOpen && (
+          <div className="max-h-[70vh] overflow-y-auto border-t border-white/10 bg-brand-900 px-4 pb-4 lg:hidden">
+            {MENUS.map((m) => (
+              <div key={m.label} className="py-2">
+                <p className="px-2 text-xs font-semibold uppercase tracking-wide text-brand-300">{m.label}</p>
+                {m.items.map(([title, , target]) => (
+                  <button
+                    key={title}
+                    type="button"
+                    disabled={!target}
+                    onClick={() => pick(target)}
+                    className="block w-full rounded-md px-2 py-1.5 text-left text-sm text-white/90 hover:bg-white/10 disabled:text-white/50"
+                  >
+                    {title}
+                  </button>
+                ))}
+              </div>
+            ))}
+          </div>
+        )}
       </header>
 
       <main>
         {/* Hero */}
-        <section className="bg-gradient-to-b from-brand-50 to-white">
+        <section className="bg-gradient-to-b from-brand-900 via-brand-800 to-brand-700 text-white">
           <div className="mx-auto grid max-w-6xl items-center gap-10 px-4 py-14 sm:px-6 lg:grid-cols-2 lg:py-20">
             <div>
-              <span className="inline-flex items-center gap-2 rounded-full bg-brand-100 px-3 py-1 text-xs font-medium text-brand-800">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-brand-100">
                 <Leaf className="h-3.5 w-3.5" aria-hidden="true" /> Emissions data you can trust
               </span>
-              <h1 className="mt-4 text-3xl font-semibold leading-tight text-ink-900 sm:text-5xl">
+              <h1 className="mt-4 text-3xl font-semibold leading-tight sm:text-5xl">
                 From source file to audit, in one place.
               </h1>
-              <p className="mt-4 max-w-xl text-base text-ink-600">
+              <p className="mt-4 max-w-xl text-base text-brand-100">
                 NexESG collects fuel, electricity and travel data, turns it into CO₂ emissions (Scope 1, 2 and 3),
                 routes it through a manager’s review, and locks approved numbers so auditors can rely on them.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
-                <Link
-                  to="/login?mode=signup"
-                  className="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-5 py-3 text-sm font-medium text-white hover:bg-brand-700"
-                >
-                  Try the live demo <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                </Link>
+                <FreeDemoButton className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-brand-800 hover:bg-brand-50">
+                  Try free demo
+                </FreeDemoButton>
                 <button
                   type="button"
                   onClick={scrollToSection('how-it-works')}
-                  className="rounded-lg border border-ink-200 bg-white px-5 py-3 text-sm font-medium text-ink-700 hover:bg-ink-50"
+                  className="rounded-lg border border-white/30 px-5 py-3 text-sm font-medium text-white hover:bg-white/10"
                 >
                   See how it works
                 </button>
               </div>
-              <p className="mt-3 text-xs text-ink-400">Free. Sign in with Google or an email code. No password.</p>
+              <p className="mt-3 text-xs text-brand-200">No sign-up needed for the demo. Or sign in with Google or an email code.</p>
             </div>
 
             {/* A real calculation, using the app's own factor */}
-            <div className="rounded-2xl border border-ink-100 bg-white p-6 shadow-card" aria-label="Example calculation">
+            <div className="rounded-2xl bg-white p-6 text-ink-800 shadow-xl" aria-label="Example calculation">
               <p className="text-xs font-semibold uppercase tracking-widest text-ink-400">Example record</p>
               <p className="mt-2 text-sm font-medium text-ink-900">Diesel fuel, Plant A (SAP)</p>
               <div className="mt-5 flex flex-wrap items-center gap-3 text-center">
@@ -258,15 +387,18 @@ export default function Landing() {
             <SectionHeading eyebrow="How it works" title="Four steps from raw file to audit-ready number" />
             <ol className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {STEPS.map(({ icon: Icon, title, text }, i) => (
-                <li key={title} className="rounded-xl bg-white p-5 shadow-card">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm font-semibold text-white">
-                      {i + 1}
+                <li
+                  key={title}
+                  className={`rounded-xl p-5 shadow-card ${i === 0 ? 'bg-brand-600 text-white' : 'bg-white text-ink-900'}`}
+                >
+                  <div className="flex items-start justify-between">
+                    <span className={`text-2xl font-semibold ${i === 0 ? 'text-white' : 'text-brand-600'}`}>
+                      {String(i + 1).padStart(2, '0')}
                     </span>
-                    <Icon className="h-5 w-5 text-brand-600" aria-hidden="true" />
+                    <Icon className={`h-7 w-7 ${i === 0 ? 'text-white' : 'text-ink-700'}`} aria-hidden="true" />
                   </div>
-                  <h3 className="mt-3 text-base font-semibold text-ink-900">{title}</h3>
-                  <p className="mt-1 text-sm text-ink-600">{text}</p>
+                  <h3 className="mt-6 text-base font-semibold">{title}</h3>
+                  <p className={`mt-1 text-sm ${i === 0 ? 'text-brand-50' : 'text-ink-600'}`}>{text}</p>
                 </li>
               ))}
             </ol>
@@ -324,7 +456,7 @@ export default function Landing() {
         </section>
 
         {/* Features */}
-        <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
+        <section id="features" className="mx-auto max-w-6xl px-4 py-16 sm:px-6">
           <SectionHeading eyebrow="Built carefully" title="Security and audit, not an afterthought" />
           <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {FEATURES.map(({ icon: Icon, title, text }) => (
@@ -367,17 +499,22 @@ export default function Landing() {
             <p className="mt-2 text-sm text-brand-100">
               Sign in and you get your own private workspace with 12 sample records to approve, flag or reject.
             </p>
-            <Link
-              to="/login?mode=signup"
-              className="mt-6 inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-medium text-brand-800 hover:bg-brand-50"
-            >
-              Get started <ArrowRight className="h-4 w-4" aria-hidden="true" />
-            </Link>
+            <div className="mt-6 flex flex-wrap justify-center gap-3">
+              <FreeDemoButton className="inline-flex items-center gap-2 rounded-lg bg-white px-5 py-3 text-sm font-semibold text-brand-800 hover:bg-brand-50">
+                Try free demo
+              </FreeDemoButton>
+              <Link
+                to="/login?mode=signup"
+                className="inline-flex items-center gap-2 rounded-lg border border-white/30 px-5 py-3 text-sm font-medium text-white hover:bg-white/10"
+              >
+                Sign up <ArrowRight className="h-4 w-4" aria-hidden="true" />
+              </Link>
+            </div>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-ink-100">
+      <footer id="about" className="border-t border-ink-100">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 py-6 text-sm text-ink-500 sm:px-6">
           <p>
             Built by <span className="font-medium text-ink-800">{OWNER_NAME}</span>

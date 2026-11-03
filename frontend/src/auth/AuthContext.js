@@ -59,6 +59,14 @@ export function AuthProvider({ children }) {
     return res.data.user;
   }, []);
 
+  // Free demo: the server creates a throw-away guest account, no sign-in needed.
+  const startDemo = useCallback(async () => {
+    const res = await api.post('/auth/demo/');
+    tokens.set({ access: res.data.access, refresh: res.data.refresh });
+    setUser(res.data.user);
+    return res.data.user;
+  }, []);
+
   const logout = useCallback(() => {
     tokens.clear();
     setUser(null);
@@ -71,13 +79,14 @@ export function AuthProvider({ children }) {
       loading,
       loginWithGoogle,
       loginWithOtp,
+      startDemo,
       logout,
       refreshUser,
       isAdmin: role === ROLES.ADMIN,
       canUpload: role === ROLES.ADMIN || role === ROLES.ANALYST || role === ROLES.DEMO,
       canReview: role === ROLES.ADMIN || role === ROLES.MANAGER || role === ROLES.DEMO,
     };
-  }, [user, loading, loginWithGoogle, loginWithOtp, logout, refreshUser]);
+  }, [user, loading, loginWithGoogle, loginWithOtp, startDemo, logout, refreshUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

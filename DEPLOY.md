@@ -64,6 +64,8 @@ With `AUTO_DEMO_SIGNUP=true` (the default in `render.yaml`), anyone who signs in
 - An Admin can still change any visitor's role and company on the **Users** page (for example, to make a real Analyst).
 - Uploads are limited to 2 MB and 1,000 rows per file (`MAX_UPLOAD_BYTES`, `MAX_UPLOAD_ROWS`) so one visitor cannot fill a free database. Each new visitor also adds a small sandbox (about 12 records), so clean up old demo companies now and then.
 
+**Free demo (no sign-in).** The **Free demo** buttons create a throw-away guest account (`guest-xxxxxx@guest.nexesg.invalid`, role Demo) with its own sandbox, so people can look around without any account. It follows `AUTO_DEMO_SIGNUP` (off means the buttons show an error). Limits: 10 demos per hour per address and `DEMO_MAX_GUESTS_PER_HOUR` (default 100) overall. Guests older than 7 days and their sample data are deleted automatically the next time someone starts a demo, and they are hidden from the Users page.
+
 **Google must allow strangers to sign in.** In Google Cloud Console, **OAuth consent screen**, check the publishing status. If it says **Testing**, only the test users you list can sign in. Click **Publish app** to move it to **In production**. For basic sign-in (email and profile) Google normally does not require a verification review, but confirm what the console shows for your project.
 
 ## 7. Sign in by email code (no Google account needed)

@@ -4,6 +4,7 @@ import { GoogleLogin } from '@react-oauth/google';
 import { BarChart3, Leaf, Mail, ShieldCheck, Workflow } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
 import { useToast } from '../components/Toast';
+import FreeDemoButton from '../components/FreeDemoButton';
 import { Spinner } from '../components/ui';
 import api, { errorMessage } from '../api';
 
@@ -191,11 +192,7 @@ export default function Login() {
             <Leaf className="h-6 w-6 text-brand-600" /> NexESG
           </div>
           <h1 className="text-2xl font-semibold text-ink-900">{signup ? 'Create your account' : 'Welcome back'}</h1>
-          <p className="mt-1 text-sm text-ink-500">
-            {signup
-              ? 'Sign up with Google, or get a one-time code by email.'
-              : 'Sign in with Google, or get a one-time code by email.'}
-          </p>
+          <p className="mt-1 text-sm text-ink-500">{signup ? 'Sign up with Google' : 'Sign in with Google'}</p>
 
           <div className="mt-8">
             {!GOOGLE_CLIENT_ID ? (
@@ -228,9 +225,14 @@ export default function Login() {
           <p className="mt-6 text-xs text-ink-400">
             New here? Sign in either way and you will get your own private demo workspace with sample data to explore.
           </p>
-          <Link to="/" className="mt-4 inline-block text-xs font-medium text-brand-700 hover:text-brand-800">
-            ← Back to home
-          </Link>
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <Link to="/" className="text-xs font-medium text-brand-700 hover:text-brand-800">
+              ← Back to home
+            </Link>
+            <FreeDemoButton className="inline-flex items-center gap-2 rounded-lg border border-brand-600 px-3 py-1.5 text-xs font-semibold text-brand-700 hover:bg-brand-50">
+              Free demo
+            </FreeDemoButton>
+          </div>
         </div>
       </div>
     </div>

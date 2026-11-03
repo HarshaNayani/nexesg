@@ -178,6 +178,7 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'otp_request': '20/hour',
         'otp_verify': '60/hour',
+        'demo_start': '10/hour',
     },
 }
 
@@ -195,6 +196,9 @@ FIRST_ADMIN_EMAIL = os.environ.get('FIRST_ADMIN_EMAIL', 'harshareddynayani@gmail
 # private demo workspace (role DEMO) with sample data. When false, new users
 # stay PENDING until an Admin assigns a role.
 AUTO_DEMO_SIGNUP = env_bool('AUTO_DEMO_SIGNUP', False)
+
+# Cap on new guest demo accounts per hour, across all visitors (protects a free database).
+DEMO_MAX_GUESTS_PER_HOUR = int(os.environ.get('DEMO_MAX_GUESTS_PER_HOUR', 100))
 
 # Upload limits keep a free database from being filled by one visitor.
 MAX_UPLOAD_BYTES = int(os.environ.get('MAX_UPLOAD_BYTES', 2 * 1024 * 1024))

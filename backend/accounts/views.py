@@ -1,5 +1,9 @@
+import secrets
+from datetime import timedelta
+
 from django.conf import settings
 from django.db import transaction
+from django.utils import timezone
 from google.auth.transport import requests as google_requests
 from google.oauth2 import id_token as google_id_token
 from rest_framework import mixins, status, viewsets
@@ -10,6 +14,7 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.demo import provision_demo_user
+from api.models import Company
 
 from . import otp
 from .mailer import MailNotConfigured, MailSendFailed
@@ -62,6 +67,55 @@ def token_response(user):
         'refresh': str(refresh),
         'user': UserSerializer(user).data,
     })
+
+
+GUEST_DOMAIN = 'guest.nexesg.invalid'  # the .invalid TLD can never receive mail
+GUEST_RETENTION = timedelta(days=7)  # same as the refresh-token lifetime
+
+
+def guest_users():
+    return User.objects.filter(email__endswith=f'@{GUEST_DOMAIN}')
+
+
+def delete_old_guests():
+    """Remove expired guest accounts and their sandbox data so the database stays small."""
+    old = guest_users().filter(date_joined__lt=timezone.now() - GUEST_RETENTION)
+    company_ids = list(old.exclude(company=None).values_list('company_id', flat=True))
+    Company.objects.filter(id__in=company_ids).delete()  # cascades to their records
+    old.delete()
+
+
+class DemoStartView(APIView):
+    """
+    POST {} -> a throw-away guest account with its own sample workspace, so a
+    visitor can look around without signing in. Guests are limited by the same
+    DEMO role as signed-in visitors and are deleted after a week.
+    """
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'demo_start'
+
+    def post(self, request):
+        if not settings.AUTO_DEMO_SIGNUP:
+            return Response({'error': 'The free demo is not available right now.'},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        delete_old_guests()
+        last_hour = timezone.now() - timedelta(hours=1)
+        if guest_users().filter(date_joined__gte=last_hour).count() >= settings.DEMO_MAX_GUESTS_PER_HOUR:
+            return Response({'error': 'The demo is very busy. Please try again in a few minutes.'},
+                            status=status.HTTP_429_TOO_MANY_REQUESTS)
+
+        tag = secrets.token_hex(3)
+        email = f'guest-{tag}@{GUEST_DOMAIN}'
+        with transaction.atomic():
+            user = User(username=email, email=email, first_name=f'Guest {tag}', role=User.Role.PENDING)
+            user.set_unusable_password()
+            user.save()
+            provision_demo_user(user)
+        return token_response(user)
 
 
 class GoogleLoginView(APIView):
@@ -187,7 +241,9 @@ class UserViewSet(mixins.ListModelMixin,
     """Admin-only user management: list users, assign role and company, deactivate."""
 
     permission_classes = [IsAdmin]
-    queryset = User.objects.select_related('company').order_by('-date_joined')
+    # Guest demo accounts are throw-away, so they are kept out of the admin's list.
+    queryset = (User.objects.select_related('company')
+                .exclude(email__endswith=f'@{GUEST_DOMAIN}').order_by('-date_joined'))
     http_method_names = ['get', 'patch', 'head', 'options']
 
     def get_serializer_class(self):
