@@ -66,6 +66,24 @@ With `AUTO_DEMO_SIGNUP=true` (the default in `render.yaml`), anyone who signs in
 
 **Google must allow strangers to sign in.** In Google Cloud Console, **OAuth consent screen**, check the publishing status. If it says **Testing**, only the test users you list can sign in. Click **Publish app** to move it to **In production**. For basic sign-in (email and profile) Google normally does not require a verification review, but confirm what the console shows for your project.
 
+## 7. Sign in by email code (no Google account needed)
+
+The login page also has **Email me a code**: the visitor types an email address, receives a 6-digit code (valid 10 minutes, one use, 5 attempts) and gets the same private demo workspace as a Google sign-in.
+
+Render's free web services block outgoing SMTP, so the API sends mail through **Brevo's HTTPS API** (free plan, about 300 emails a day; check Brevo's current terms).
+
+1. Create a free account at brevo.com.
+2. **Senders, Domains & Dedicated IPs → Senders → Add a sender**: use an email address you own (for example your Gmail) and confirm the verification email Brevo sends.
+3. **SMTP & API → API keys → Generate a new API key**. Copy it once.
+4. On Render, `nexesg-api` → **Environment**, add:
+   - `BREVO_API_KEY` = the key
+   - `EMAIL_FROM` = the verified sender address
+5. Save (the API redeploys), then open the site, choose **Email me a code** and check the inbox. **Look in spam the first time**: mail sent from a free Gmail address through a shared service is often filtered. A sender on your own domain (with Brevo's SPF/DKIM records) is much more reliable.
+
+Without these two variables the page shows "Email sign-in is not set up on the server yet" and Google sign-in keeps working.
+
+Limits that protect the free tiers: one code per email per minute, 5 codes per email per hour, 20 code requests per hour per address, and a code locks after 5 wrong guesses.
+
 ## Troubleshooting
 
 | Symptom | Cause |
@@ -74,6 +92,8 @@ With `AUTO_DEMO_SIGNUP=true` (the default in `render.yaml`), anyone who signs in
 | Google says "Access blocked: app not verified" or only some people can sign in | The consent screen is still in **Testing**. Publish it (section 6). |
 | "Invalid Google token" | `GOOGLE_CLIENT_ID` on `nexesg-api` differs from `REACT_APP_GOOGLE_CLIENT_ID` on `nexesg-web`. |
 | Browser console shows a CORS error | `CORS_ALLOWED_ORIGINS` on `nexesg-api` does not exactly match the frontend URL. |
+| "Email sign-in is not set up on the server yet" | `BREVO_API_KEY` or `EMAIL_FROM` is missing on `nexesg-api` (section 7). |
+| "Could not send the email" | Brevo rejected the request: the sender in `EMAIL_FROM` is not verified, the key is wrong, or the daily limit is used. Check Brevo's logs. |
 | "Cannot reach the server" | The free API is waking up (wait about a minute) or `REACT_APP_API_URL` is wrong. |
 | API fails to start | Check the deploy logs: usually `SECRET_KEY` or `DATABASE_URL` is missing or malformed. |
 | Data disappears after a deploy | The API is using SQLite instead of Postgres: `DATABASE_URL` is not set. |

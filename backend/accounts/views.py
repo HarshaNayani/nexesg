@@ -5,14 +5,18 @@ from google.oauth2 import id_token as google_id_token
 from rest_framework import mixins, status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from api.demo import provision_demo_user
 
+from . import otp
+from .mailer import MailNotConfigured, MailSendFailed
 from .models import User
 from .permissions import IsAdmin
-from .serializers import (GoogleLoginSerializer, UserAdminUpdateSerializer,
+from .serializers import (GoogleLoginSerializer, OtpRequestSerializer,
+                          OtpVerifySerializer, UserAdminUpdateSerializer,
                           UserSerializer)
 
 
@@ -24,6 +28,40 @@ def verify_google_token(token):
     return google_id_token.verify_oauth2_token(
         token, google_requests.Request(), settings.GOOGLE_CLIENT_ID
     )
+
+
+def get_or_create_login_user(email, first_name='', last_name='', picture=''):
+    """
+    Shared by Google and email-code sign-in: both prove the person controls
+    `email`. FIRST_ADMIN_EMAIL becomes ADMIN; other new users get a private demo
+    workspace (AUTO_DEMO_SIGNUP) or wait as PENDING.
+    """
+    is_first_admin = email == settings.FIRST_ADMIN_EMAIL.lower()
+    with transaction.atomic():
+        user, created = User.objects.get_or_create(
+            email=email,
+            defaults={
+                'username': email,
+                'first_name': first_name,
+                'last_name': last_name,
+                'picture': picture,
+                'role': User.Role.ADMIN if is_first_admin else User.Role.PENDING,
+                'is_staff': is_first_admin,
+                'is_superuser': is_first_admin,
+            },
+        )
+        if created and not is_first_admin and settings.AUTO_DEMO_SIGNUP:
+            provision_demo_user(user)
+    return user, created
+
+
+def token_response(user):
+    refresh = RefreshToken.for_user(user)
+    return Response({
+        'access': str(refresh.access_token),
+        'refresh': str(refresh),
+        'user': UserSerializer(user).data,
+    })
 
 
 class GoogleLoginView(APIView):
@@ -58,23 +96,12 @@ class GoogleLoginView(APIView):
             return Response({'error': 'Google account email is not verified.'},
                             status=status.HTTP_401_UNAUTHORIZED)
 
-        is_first_admin = email == settings.FIRST_ADMIN_EMAIL.lower()
-        with transaction.atomic():
-            user, created = User.objects.get_or_create(
-                email=email,
-                defaults={
-                    'username': email,
-                    'first_name': claims.get('given_name', ''),
-                    'last_name': claims.get('family_name', ''),
-                    'picture': claims.get('picture', ''),
-                    'role': User.Role.ADMIN if is_first_admin else User.Role.PENDING,
-                    'is_staff': is_first_admin,
-                    'is_superuser': is_first_admin,
-                },
-            )
-            if created and not is_first_admin and settings.AUTO_DEMO_SIGNUP:
-                provision_demo_user(user)
-
+        user, created = get_or_create_login_user(
+            email,
+            first_name=claims.get('given_name', ''),
+            last_name=claims.get('family_name', ''),
+            picture=claims.get('picture', ''),
+        )
         if not user.is_active:
             return Response({'error': 'This account has been disabled.'},
                             status=status.HTTP_403_FORBIDDEN)
@@ -83,12 +110,65 @@ class GoogleLoginView(APIView):
             user.picture = claims['picture']
             user.save(update_fields=['picture'])
 
-        refresh = RefreshToken.for_user(user)
-        return Response({
-            'access': str(refresh.access_token),
-            'refresh': str(refresh),
-            'user': UserSerializer(user).data,
-        })
+        return token_response(user)
+
+
+class OtpRequestView(APIView):
+    """POST {"email"} -> emails a 6-digit sign-in code."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'otp_request'
+
+    def post(self, request):
+        serializer = OtpRequestSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+
+        try:
+            otp.issue_code(email)
+        except otp.Cooldown as exc:
+            return Response({'error': f'Please wait {exc.seconds} seconds before asking for another code.',
+                             'retry_after': exc.seconds},
+                            status=status.HTTP_429_TOO_MANY_REQUESTS)
+        except otp.TooManyCodes:
+            return Response({'error': 'Too many codes requested for this email. Try again in an hour.'},
+                            status=status.HTTP_429_TOO_MANY_REQUESTS)
+        except MailNotConfigured:
+            return Response({'error': 'Email sign-in is not set up on the server yet.'},
+                            status=status.HTTP_503_SERVICE_UNAVAILABLE)
+        except MailSendFailed:
+            return Response({'error': 'Could not send the email. Please try again in a moment.'},
+                            status=status.HTTP_503_SERVICE_UNAVAILABLE)
+
+        return Response({'detail': 'Code sent.',
+                         'resend_in': settings.OTP_RESEND_SECONDS,
+                         'expires_in': settings.OTP_TTL_SECONDS})
+
+
+class OtpVerifyView(APIView):
+    """POST {"email", "code"} -> our own JWT pair, same shape as the Google login."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'otp_verify'
+
+    def post(self, request):
+        serializer = OtpVerifySerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data['email']
+
+        if not otp.check_code(email, serializer.validated_data['code']):
+            return Response({'error': 'That code is wrong or has expired. Request a new one.'},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        user, _ = get_or_create_login_user(email)
+        if not user.is_active:
+            return Response({'error': 'This account has been disabled.'},
+                            status=status.HTTP_403_FORBIDDEN)
+        return token_response(user)
 
 
 class MeView(APIView):

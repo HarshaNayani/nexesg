@@ -173,6 +173,12 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
     ],
+    # Per-address limits on the email sign-in endpoints (the per-email limits
+    # in accounts/otp.py are the main protection).
+    'DEFAULT_THROTTLE_RATES': {
+        'otp_request': '20/hour',
+        'otp_verify': '60/hour',
+    },
 }
 
 SIMPLE_JWT = {
@@ -193,3 +199,13 @@ AUTO_DEMO_SIGNUP = env_bool('AUTO_DEMO_SIGNUP', False)
 # Upload limits keep a free database from being filled by one visitor.
 MAX_UPLOAD_BYTES = int(os.environ.get('MAX_UPLOAD_BYTES', 2 * 1024 * 1024))
 MAX_UPLOAD_ROWS = int(os.environ.get('MAX_UPLOAD_ROWS', 1000))
+
+# Email sign-in codes. Render's free tier blocks SMTP, so mail goes out through
+# Brevo's HTTPS API. EMAIL_FROM must be a sender verified in Brevo. With DEBUG on
+# and no key, codes are printed to the server console instead.
+BREVO_API_KEY = os.environ.get('BREVO_API_KEY', '')
+EMAIL_FROM = os.environ.get('EMAIL_FROM', '')
+OTP_TTL_SECONDS = int(os.environ.get('OTP_TTL_SECONDS', 600))
+OTP_RESEND_SECONDS = int(os.environ.get('OTP_RESEND_SECONDS', 60))
+OTP_MAX_ATTEMPTS = int(os.environ.get('OTP_MAX_ATTEMPTS', 5))
+OTP_MAX_PER_HOUR = int(os.environ.get('OTP_MAX_PER_HOUR', 5))

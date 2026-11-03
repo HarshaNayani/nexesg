@@ -129,6 +129,94 @@ describe('signing in', () => {
   });
 });
 
+describe('signing in with an email code', () => {
+  const askForCode = async (address = 'visitor@example.com') => {
+    await userEvent.type(screen.getByLabelText(/email address/i), address);
+    await userEvent.click(screen.getByRole('button', { name: /email me a code/i }));
+  };
+
+  test('email form is shown next to Google sign-in', () => {
+    render(<App />);
+    expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /email me a code/i })).toBeDisabled();
+  });
+
+  test('request a code, enter it, and land on the dashboard', async () => {
+    api.post.mockImplementation((url) => {
+      if (url === '/auth/otp/request/') return Promise.resolve({ data: { resend_in: 60 } });
+      if (url === '/auth/otp/verify/') {
+        return Promise.resolve({ data: { access: 'a', refresh: 'r', user: makeUser('DEMO') } });
+      }
+      return Promise.reject(new Error(`unmocked POST ${url}`));
+    });
+    api.get.mockImplementation((url) =>
+      Promise.resolve({ data: url === '/emissions/summary/' ? SUMMARY : [] })
+    );
+
+    render(<App />);
+    await askForCode();
+    expect(api.post).toHaveBeenCalledWith('/auth/otp/request/', { email: 'visitor@example.com' });
+
+    expect(await screen.findByText(/sent a 6-digit code/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /resend code in/i })).toBeDisabled();
+    const verifyButton = screen.getByRole('button', { name: /verify and continue/i });
+    expect(verifyButton).toBeDisabled();
+
+    await userEvent.type(screen.getByLabelText(/6-digit code/i), '12a3456');
+    expect(screen.getByLabelText(/6-digit code/i)).toHaveValue('123456'); // letters are dropped
+    await userEvent.click(verifyButton);
+
+    expect(await screen.findByRole('heading', { name: /demo workspace/i })).toBeInTheDocument();
+    expect(api.post).toHaveBeenCalledWith('/auth/otp/verify/', {
+      email: 'visitor@example.com',
+      code: '123456',
+    });
+    expect(tokens.set).toHaveBeenCalledWith({ access: 'a', refresh: 'r' });
+  });
+
+  test('a wrong code shows the server message and keeps the code box', async () => {
+    api.post.mockImplementation((url) =>
+      url === '/auth/otp/request/'
+        ? Promise.resolve({ data: { resend_in: 60 } })
+        : Promise.reject({ response: { status: 400, data: { error: 'That code is wrong or has expired.' } } })
+    );
+    render(<App />);
+    await askForCode();
+    await userEvent.type(await screen.findByLabelText(/6-digit code/i), '000000');
+    await userEvent.click(screen.getByRole('button', { name: /verify and continue/i }));
+
+    expect(await screen.findByText(/wrong or has expired/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/6-digit code/i)).toBeInTheDocument();
+    expect(tokens.set).not.toHaveBeenCalled();
+  });
+
+  test('if the email cannot be sent the user stays on the email step', async () => {
+    api.post.mockRejectedValue({ response: { status: 503, data: { error: 'Email sign-in is not set up on the server yet.' } } });
+    render(<App />);
+    await askForCode();
+    expect(await screen.findByText(/not set up on the server/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/email address/i)).toBeInTheDocument();
+  });
+
+  test('asking again too soon moves to the code box with a countdown', async () => {
+    api.post.mockRejectedValue({
+      response: { status: 429, data: { error: 'Please wait 40 seconds before asking for another code.', retry_after: 40 } },
+    });
+    render(<App />);
+    await askForCode();
+    expect(await screen.findByLabelText(/6-digit code/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /resend code in 40s/i })).toBeDisabled();
+  });
+
+  test('"use a different email" goes back to the email step', async () => {
+    api.post.mockResolvedValue({ data: { resend_in: 60 } });
+    render(<App />);
+    await askForCode();
+    await userEvent.click(await screen.findByRole('button', { name: /use a different email/i }));
+    expect(screen.getByLabelText(/email address/i)).toHaveValue('visitor@example.com');
+  });
+});
+
 describe('role-based navigation', () => {
   const links = async () => {
     const nav = await screen.findByRole('navigation', { name: /main/i });

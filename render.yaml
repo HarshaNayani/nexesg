@@ -32,6 +32,12 @@ services:
         sync: false
       - key: CORS_ALLOWED_ORIGINS # the frontend URL, e.g. https://nexesg-web.onrender.com
         sync: false
+      # Email sign-in codes (see DEPLOY.md, section 7). Free Render services
+      # cannot use SMTP, so mail goes out through Brevo's HTTPS API.
+      - key: BREVO_API_KEY
+        sync: false
+      - key: EMAIL_FROM # a sender address verified in Brevo
+        sync: false
 
   # ---- React frontend (static site) ------------------------------------
   - type: web

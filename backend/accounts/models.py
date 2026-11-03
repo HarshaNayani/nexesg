@@ -32,3 +32,23 @@ class User(AbstractUser):
 
     def __str__(self):
         return f"{self.email} ({self.role})"
+
+
+class EmailOTP(models.Model):
+    """
+    One-time sign-in code sent by email. Only a keyed hash of the code is
+    stored, so a database leak does not reveal usable codes.
+    """
+
+    email = models.EmailField(db_index=True)
+    code_hash = models.CharField(max_length=64)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    used = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"OTP for {self.email} at {self.created_at:%Y-%m-%d %H:%M}"
