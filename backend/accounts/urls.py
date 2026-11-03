@@ -2,7 +2,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 from rest_framework_simplejwt.views import TokenRefreshView
 
-from .views import (GoogleLoginView, MeView, OtpRequestView, OtpVerifyView,
+from .views import (DemoStartView, GoogleLoginView, MeView, OtpRequestView, OtpVerifyView,
                     UserViewSet)
 
 router = DefaultRouter()
@@ -10,6 +10,7 @@ router.register(r'users', UserViewSet, basename='user')
 
 urlpatterns = [
     path('auth/google/', GoogleLoginView.as_view(), name='google-login'),
+    path('auth/demo/', DemoStartView.as_view(), name='demo-start'),
     path('auth/otp/request/', OtpRequestView.as_view(), name='otp-request'),
     path('auth/otp/verify/', OtpVerifyView.as_view(), name='otp-verify'),
     path('auth/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
