@@ -5,6 +5,7 @@ import { AuthProvider, ROLES, useAuth } from './auth/AuthContext';
 import { ToastProvider } from './components/Toast';
 import { Spinner } from './components/ui';
 import Layout from './components/Layout';
+import Landing from './pages/Landing';
 import Login, { GOOGLE_CLIENT_ID } from './pages/Login';
 import Pending from './pages/Pending';
 import Dashboard from './pages/Dashboard';
@@ -26,7 +27,15 @@ function AppRoutes() {
       </div>
     );
   }
-  if (!user) return <Login />;
+  if (!user) {
+    return (
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Landing />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
+  }
   if (user.role === ROLES.PENDING) return <Pending />;
 
   return (

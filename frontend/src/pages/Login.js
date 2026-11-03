@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { BarChart3, Leaf, Mail, ShieldCheck, Workflow } from 'lucide-react';
 import { useAuth } from '../auth/AuthContext';
@@ -145,6 +146,8 @@ export default function Login() {
   const { loginWithGoogle } = useAuth();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
+  const [params] = useSearchParams();
+  const signup = params.get('mode') === 'signup';
 
   const onSuccess = async (response) => {
     if (!response.credential) {
@@ -187,8 +190,12 @@ export default function Login() {
           <div className="mb-8 flex items-center gap-2 text-lg font-semibold text-ink-900 lg:hidden">
             <Leaf className="h-6 w-6 text-brand-600" /> NexESG
           </div>
-          <h1 className="text-2xl font-semibold text-ink-900">Welcome back</h1>
-          <p className="mt-1 text-sm text-ink-500">Sign in with Google, or get a one-time code by email.</p>
+          <h1 className="text-2xl font-semibold text-ink-900">{signup ? 'Create your account' : 'Welcome back'}</h1>
+          <p className="mt-1 text-sm text-ink-500">
+            {signup
+              ? 'Sign up with Google, or get a one-time code by email.'
+              : 'Sign in with Google, or get a one-time code by email.'}
+          </p>
 
           <div className="mt-8">
             {!GOOGLE_CLIENT_ID ? (
@@ -221,6 +228,9 @@ export default function Login() {
           <p className="mt-6 text-xs text-ink-400">
             New here? Sign in either way and you will get your own private demo workspace with sample data to explore.
           </p>
+          <Link to="/" className="mt-4 inline-block text-xs font-medium text-brand-700 hover:text-brand-800">
+            ← Back to home
+          </Link>
         </div>
       </div>
     </div>
