@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from './App';
 import api, { tokens } from './api';
@@ -182,6 +182,19 @@ describe('free demo and header menus', () => {
     const ai = within(header).getByRole('list', { name: /ai agents/i });
     expect(within(ai).getByRole('button', { name: /esg assistant/i })).toBeDisabled();
     expect(within(ai).getByText(/coming soon/i)).toBeInTheDocument();
+  });
+
+  test('the header is transparent at the top and turns into frosted glass after scrolling', () => {
+    render(<App />);
+    const header = screen.getByRole('banner');
+    expect(header).toHaveClass('bg-transparent');
+    window.scrollY = 200;
+    fireEvent.scroll(window);
+    expect(header).toHaveClass('backdrop-blur-md');
+    expect(header).not.toHaveClass('bg-transparent');
+    window.scrollY = 0;
+    fireEvent.scroll(window);
+    expect(header).toHaveClass('bg-transparent');
   });
 
   test('Escape closes an open menu', async () => {
