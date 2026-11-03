@@ -4,7 +4,6 @@ import {
   ArrowRight,
   BarChart3,
   Building2,
-  ChevronDown,
   Calculator,
   ClipboardCheck,
   Factory,
@@ -195,15 +194,13 @@ function NavMenu({ menu, onPick, light }) {
       >
         {menu.sparkle && <Sparkles className="h-4 w-4" aria-hidden="true" />}
         {menu.label}
-        <ChevronDown
-          className={`h-4 w-4 transition-transform ${light ? 'text-white/70' : 'text-ink-500'} ${open ? 'rotate-180' : ''}`}
-          aria-hidden="true"
-        />
       </button>
       {open && (
         <div className="absolute left-0 top-full z-30 w-64 pt-2">
           <ul
-            className="rounded-xl border border-white/20 bg-ink-900/50 p-2 shadow-xl backdrop-blur-xl backdrop-saturate-150"
+            className={`rounded-xl border p-2 backdrop-blur-xl ${
+              light ? 'border-white/20 bg-white/10' : 'border-ink-900/10 bg-ink-900/10'
+            }`}
             aria-label={menu.label}
           >
             {menu.items.map(([title, hint, target]) => (
@@ -215,10 +212,12 @@ function NavMenu({ menu, onPick, light }) {
                     close();
                     onPick(target);
                   }}
-                  className="w-full rounded-lg px-3 py-2 text-left hover:bg-white/15 disabled:cursor-default disabled:hover:bg-transparent"
+                  className={`w-full rounded-lg px-3 py-2 text-left disabled:cursor-default disabled:hover:bg-transparent ${
+                    light ? 'hover:bg-white/15' : 'hover:bg-ink-900/10'
+                  }`}
                 >
-                  <span className="block text-sm font-semibold text-white">{title}</span>
-                  <span className="block text-xs text-white/80">{hint}</span>
+                  <span className={`block text-sm font-semibold ${light ? 'text-white' : 'text-ink-900'}`}>{title}</span>
+                  <span className={`block text-xs ${light ? 'text-white/80' : 'text-ink-600'}`}>{hint}</span>
                 </button>
               </li>
             ))}
@@ -268,7 +267,9 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-white text-ink-800">
-      <header className="fixed inset-x-0 top-0 z-20">
+      <header
+        className={`fixed inset-x-0 top-0 z-20 transition-colors duration-300 ${light ? 'bg-white/10' : 'bg-ink-900/10'}`}
+      >
         <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6">
           <Link to="/" className="flex items-center gap-2 text-xl font-bold tracking-tight">
             <Leaf className={`h-6 w-6 ${light ? 'text-brand-300' : 'text-brand-600'}`} aria-hidden="true" />

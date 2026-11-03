@@ -194,14 +194,34 @@ describe('free demo and header menus', () => {
       });
     afterEach(() => jest.restoreAllMocks());
 
-    test('has no background or blur, and a green gradient NexESG name', () => {
+    test('has a 10% tint (no blur), no dropdown arrows, and a green gradient NexESG name', () => {
       overDarkSection(true);
       render(<App />);
       const header = screen.getByRole('banner');
-      expect(header.className).not.toMatch(/\bbg-|backdrop/);
+      expect(header).toHaveClass('bg-white/10');
+      expect(header.className).not.toMatch(/backdrop/);
+      expect(header.querySelector('svg.lucide-chevron-down')).toBeNull();
       const name = within(header).getByText('NexESG');
       expect(name).toHaveClass('bg-clip-text', 'text-transparent');
       expect(name.className).toMatch(/emerald|brand/);
+    });
+
+    test('the tint flips to a dark 10% over light sections', () => {
+      overDarkSection(false);
+      render(<App />);
+      expect(screen.getByRole('banner')).toHaveClass('bg-ink-900/10');
+    });
+
+    test('hovering a name opens its dropdown with the same 10% tint, and leaving closes it', async () => {
+      overDarkSection(true);
+      render(<App />);
+      const header = screen.getByRole('banner');
+      const learn = within(header).getByRole('button', { name: /^learn$/i });
+      await userEvent.hover(learn);
+      const list = within(header).getByRole('list', { name: /learn/i });
+      expect(list).toHaveClass('bg-white/10', 'backdrop-blur-xl');
+      await userEvent.unhover(learn);
+      expect(within(header).queryByRole('list', { name: /learn/i })).not.toBeInTheDocument();
     });
 
     test('text is white over a dark section and dark over a light one', async () => {
