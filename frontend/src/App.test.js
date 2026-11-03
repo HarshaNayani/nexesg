@@ -73,7 +73,65 @@ beforeEach(() => {
   window.location.hash = '';
 });
 
+describe('landing page', () => {
+  test('logged-out visitors land on the product page with sign in and sign up at the top', () => {
+    render(<App />);
+    expect(screen.getByRole('heading', { level: 1, name: /from source file to audit/i })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: /welcome back/i })).not.toBeInTheDocument();
+    const header = screen.getByRole('banner');
+    expect(within(header).getByRole('link', { name: /^sign in$/i })).toHaveAttribute('href', '#/login');
+    expect(within(header).getByRole('link', { name: /^sign up$/i })).toHaveAttribute('href', '#/login?mode=signup');
+  });
+
+  test('explains ESG, how it works, and the CO2 rates the app really uses', () => {
+    render(<App />);
+    expect(screen.getByRole('heading', { name: /what is esg/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /four steps/i })).toBeInTheDocument();
+    const table = screen.getByRole('table');
+    expect(within(table).getByText('2.68')).toBeInTheDocument(); // diesel, per litre
+    expect(within(table).getByText('0.82')).toBeInTheDocument(); // India grid, per kWh
+    expect(within(table).getByText('0.255')).toBeInTheDocument(); // flight, per km
+    expect(screen.getByText(/1,340/)).toBeInTheDocument(); // the worked example: 500 x 2.68
+  });
+
+  test('footer shows the owner name and a LinkedIn link that opens in a new tab', () => {
+    render(<App />);
+    const footer = screen.getByRole('contentinfo');
+    expect(within(footer).getByText(/Harshavardhan Reddy Nayani/)).toBeInTheDocument();
+    const link = within(footer).getByRole('link', { name: /on linkedin/i });
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', expect.stringContaining('noopener'));
+    expect(link.getAttribute('href')).toMatch(/^https:\/\/www\.linkedin\.com\//);
+  });
+
+  test('Sign in leads to the login page, Sign up to the sign-up wording', async () => {
+    render(<App />);
+    await userEvent.click(within(screen.getByRole('banner')).getByRole('link', { name: /^sign in$/i }));
+    expect(await screen.findByRole('heading', { name: /welcome back/i })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('link', { name: /back to home/i }));
+    await userEvent.click(within(screen.getByRole('banner')).getByRole('link', { name: /^sign up$/i }));
+    expect(await screen.findByRole('heading', { name: /create your account/i })).toBeInTheDocument();
+  });
+
+  test('unknown addresses fall back to the landing page', () => {
+    window.location.hash = '#/somewhere-else';
+    render(<App />);
+    expect(screen.getByRole('heading', { level: 1, name: /from source file to audit/i })).toBeInTheDocument();
+  });
+
+  test('signing out returns to the landing page', async () => {
+    signedInAs('MANAGER');
+    render(<App />);
+    await userEvent.click(await screen.findByRole('button', { name: /sign out/i }));
+    expect(await screen.findByRole('heading', { level: 1, name: /from source file to audit/i })).toBeInTheDocument();
+  });
+});
+
 describe('signing in', () => {
+  beforeEach(() => {
+    window.location.hash = '#/login';
+  });
+
   test('logged-out visitors see the Google sign-in page', () => {
     render(<App />);
     expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument();
@@ -130,6 +188,10 @@ describe('signing in', () => {
 });
 
 describe('signing in with an email code', () => {
+  beforeEach(() => {
+    window.location.hash = '#/login';
+  });
+
   const askForCode = async (address = 'visitor@example.com') => {
     await userEvent.type(screen.getByLabelText(/email address/i), address);
     await userEvent.click(screen.getByRole('button', { name: /email me a code/i }));
